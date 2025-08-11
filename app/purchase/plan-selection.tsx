@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { theme } from '@/styles/theme';
 
 const networkImages = {
-  mtn: require('@/assets/images/mtn.png'),
+  mtn: require('@/assets/images/mtn1.png'),
   airtel: require('@/assets/images/airtel.png'),
   glo: require('@/assets/images/glo1.jpeg'),
   '9mobile': require('@/assets/images/9mobile1.jpeg'),
@@ -81,13 +81,14 @@ export default function PlanSelectionScreen() {
     <TouchableOpacity
       style={styles.planItem}
       onPress={() => handlePlanSelect(item)}>
-      <ImageBackground
-        source={networkImages[network as keyof typeof networkImages]}
-        style={styles.planBackground}
-        imageStyle={styles.planBackgroundImage}
-      >
-        <View style={[styles.planOverlay, { backgroundColor: `${networkColors[network as keyof typeof networkColors]}15` }]} />
-        
+      <View style={styles.planHeader}>
+        <Image 
+          source={networkImages[network as keyof typeof networkImages]}
+          style={styles.networkLogo}
+          resizeMode="contain"
+        />
+      </View>
+      
       {service === 'data' ? (
         <>
           <Text style={styles.planName}>{item.name}</Text>
@@ -102,7 +103,6 @@ export default function PlanSelectionScreen() {
           </View>
         </>
       )}
-      </ImageBackground>
     </TouchableOpacity>
   );
 
@@ -217,30 +217,28 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   planItem: {
+    backgroundColor: theme.colors.card,
     flex: 1,
     margin: 4,
     borderRadius: 12,
     minHeight: 100,
-    overflow: 'hidden',
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  planBackground: {
-    flex: 1,
-    padding: 12,
+  planHeader: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 8,
   },
-  planBackgroundImage: {
-    opacity: 0.1,
-    borderRadius: 12,
-  },
-  planOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 12,
+  networkLogo: {
+    width: 24,
+    height: 24,
   },
   planName: {
     color: theme.colors.text,

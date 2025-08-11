@@ -171,43 +171,39 @@ export default function HomeScreen() {
 
   const renderPlanCard = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.planCard} onPress={() => handlePlanSelect(item)}>
-      <ImageBackground
-        source={networkImages[item.network.toLowerCase() as keyof typeof networkImages]}
-        style={styles.cardBackground}
-        imageStyle={styles.cardBackgroundImage}
-      >
-        <View style={[styles.cardOverlay, { backgroundColor: `${networkColors[item.network.toLowerCase() as keyof typeof networkColors]}15` }]} />
-        
-        <View style={styles.planHeader}>
-          <View style={[styles.networkBadge, { backgroundColor: networkColors[item.network.toLowerCase() as keyof typeof networkColors] }]}>
-            <Text style={styles.networkText}>{item.network}</Text>
+      <View style={styles.planHeader}>
+        <View style={styles.networkLogoContainer}>
+          <Image 
+            source={networkImages[item.network.toLowerCase() as keyof typeof networkImages]}
+            style={styles.networkLogo}
+            resizeMode="contain"
+          />
+        </View>
+        {item.popular && (
+          <View style={styles.popularBadge}>
+            <Text style={styles.popularText}>Popular</Text>
           </View>
-          {item.popular && (
-            <View style={styles.popularBadge}>
-              <Text style={styles.popularText}>Popular</Text>
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.planContent}>
-          {item.type === 'data' ? (
-            <>
-              <Text style={styles.planName}>{item.name}</Text>
-              <Text style={styles.planDuration}>{item.duration}</Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.planName}>₦{item.amount}</Text>
-              <Text style={styles.planDuration}>Airtime</Text>
-            </>
-          )}
-        </View>
+        )}
+      </View>
+      
+      <View style={styles.planContent}>
+        {item.type === 'data' ? (
+          <>
+            <Text style={styles.planName}>{item.name}</Text>
+            <Text style={styles.planDuration}>{item.duration}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.planName}>₦{item.amount}</Text>
+            <Text style={styles.planDuration}>Airtime</Text>
+          </>
+        )}
+      </View>
 
-        <View style={styles.priceContainer}>
-          <Text style={styles.ourPrice}>₦{item.ourPrice}</Text>
-          <Text style={styles.competitorPrice}>₦{item.competitorPrice}</Text>
-        </View>
-      </ImageBackground>
+      <View style={styles.priceContainer}>
+        <Text style={styles.ourPrice}>₦{item.ourPrice}</Text>
+        <Text style={styles.competitorPrice}>₦{item.competitorPrice}</Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -244,14 +240,6 @@ export default function HomeScreen() {
               <Text style={styles.greetingText}>
                 {user ? `Hi, ${user.name?.split(' ')[0] || 'User'}` : 'Welcome to Bytedata'}
               </Text>
-              {user && (
-                <Text style={styles.balanceText}>Balance: ₦{balance.toFixed(2)}</Text>
-              )}
-            </View>
-          </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={24} color={theme.colors.text} />
-          </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
@@ -491,29 +479,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   planCard: {
+    backgroundColor: theme.colors.card,
     borderRadius: 16,
     flex: 1,
     margin: 4,
     minHeight: 160,
-    overflow: 'hidden',
+    padding: 12,
+    justifyContent: 'space-between',
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-  },
-  cardBackground: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  cardBackgroundImage: {
-    opacity: 0.1,
-    borderRadius: 16,
-  },
-  cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 16,
   },
   planHeader: {
     flexDirection: 'row',
@@ -521,15 +498,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
-  networkBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  networkLogoContainer: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
+    overflow: 'hidden',
   },
-  networkText: {
-    color: theme.colors.background,
-    fontSize: 10,
-    fontWeight: 'bold',
+  networkLogo: {
+    width: 24,
+    height: 24,
   },
   popularBadge: {
     backgroundColor: theme.colors.primary,
@@ -577,7 +554,7 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     marginTop: 16,
   },
   actionItem: {
