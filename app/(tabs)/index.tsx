@@ -240,6 +240,8 @@ export default function HomeScreen() {
               <Text style={styles.greetingText}>
                 {user ? `Hi, ${user.name?.split(' ')[0] || 'User'}` : 'Welcome to Bytedata'}
               </Text>
+            </View>
+          </View>
         </View>
 
         {/* Search Bar */}
