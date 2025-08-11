@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Filter, ArrowUpRight, ArrowDownLeft } from 'lucide-react-native';
 import { AuthContext } from '@/contexts/AuthContext';
@@ -80,6 +80,13 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('@/assets/images/bytedata.jpg')}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <View style={styles.backgroundOverlay} />
+        
       <View style={styles.header}>
         <Text style={styles.title}>Transaction History</Text>
         <TouchableOpacity>
@@ -126,6 +133,8 @@ export default function HistoryScreen() {
           </View>
         }
       />
+      
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -134,6 +143,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  backgroundImage: {
+    flex: 1,
+  },
+  backgroundImageStyle: {
+    opacity: 0.03,
+    resizeMode: 'cover',
+  },
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 20, 25, 0.95)',
   },
   header: {
     flexDirection: 'row',

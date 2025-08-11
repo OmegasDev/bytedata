@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Smartphone, Wifi } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -18,6 +18,13 @@ export default function BuyScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('@/assets/images/bytedata.jpg')}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <View style={styles.backgroundOverlay} />
+        
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.colors.text} />
@@ -57,6 +64,8 @@ export default function BuyScreen() {
           </View>
         </TouchableOpacity>
       </View>
+      
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -65,6 +74,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  backgroundImage: {
+    flex: 1,
+  },
+  backgroundImageStyle: {
+    opacity: 0.03,
+    resizeMode: 'cover',
+  },
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 20, 25, 0.95)',
   },
   header: {
     flexDirection: 'row',

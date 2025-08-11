@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, FlatList, Image, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Search, Wifi, Smartphone, Zap, Clock } from 'lucide-react-native';
+import { Bell, Search, Wifi, Smartphone, Clock } from 'lucide-react-native';
 import { AuthContext } from '@/contexts/AuthContext';
 import { WalletContext } from '@/contexts/WalletContext';
 import { SignupModal } from '@/components/SignupModal';
@@ -16,6 +16,20 @@ const popularSearches = [
   '9mobile airtime',
 ];
 
+const networkImages = {
+  mtn: require('@/assets/images/mtn.png'),
+  airtel: require('@/assets/images/airtel.png'),
+  glo: require('@/assets/images/glo1.jpeg'),
+  '9mobile': require('@/assets/images/9mobile1.jpeg'),
+};
+
+const networkColors = {
+  mtn: '#FFCB05',
+  airtel: '#FF0000',
+  glo: '#00A651',
+  '9mobile': '#00AF50',
+};
+
 const featuredPlans = [
   {
     id: '1',
@@ -25,7 +39,6 @@ const featuredPlans = [
     duration: '1 Day',
     ourPrice: 500,
     competitorPrice: 600,
-    icon: '🟡',
     popular: true,
   },
   {
@@ -36,7 +49,6 @@ const featuredPlans = [
     duration: '1 Day',
     ourPrice: 350,
     competitorPrice: 400,
-    icon: '🔴',
   },
   {
     id: '3',
@@ -46,7 +58,6 @@ const featuredPlans = [
     duration: '7 Days',
     ourPrice: 1000,
     competitorPrice: 1200,
-    icon: '🟢',
   },
   {
     id: '4',
@@ -56,7 +67,6 @@ const featuredPlans = [
     duration: '7 Days',
     ourPrice: 800,
     competitorPrice: 950,
-    icon: '🟢',
   },
   {
     id: '5',
@@ -66,7 +76,6 @@ const featuredPlans = [
     duration: '30 Days',
     ourPrice: 2500,
     competitorPrice: 3000,
-    icon: '🟡',
   },
   {
     id: '6',
@@ -76,7 +85,6 @@ const featuredPlans = [
     duration: '30 Days',
     ourPrice: 3500,
     competitorPrice: 4000,
-    icon: '🔴',
   },
 ];
 
@@ -89,7 +97,6 @@ const airtimeOffers = [
     ourPrice: 98,
     competitorPrice: 100,
     discount: 2,
-    icon: '🟡',
   },
   {
     id: '8',
@@ -99,7 +106,6 @@ const airtimeOffers = [
     ourPrice: 490,
     competitorPrice: 500,
     discount: 10,
-    icon: '🔴',
   },
   {
     id: '9',
@@ -109,7 +115,6 @@ const airtimeOffers = [
     ourPrice: 980,
     competitorPrice: 1000,
     discount: 20,
-    icon: '🟢',
   },
   {
     id: '10',
@@ -119,7 +124,6 @@ const airtimeOffers = [
     ourPrice: 196,
     competitorPrice: 200,
     discount: 4,
-    icon: '🟢',
   },
 ];
 
@@ -167,34 +171,43 @@ export default function HomeScreen() {
 
   const renderPlanCard = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.planCard} onPress={() => handlePlanSelect(item)}>
-      <View style={styles.planHeader}>
-        <Text style={styles.networkIcon}>{item.icon}</Text>
-        {item.popular && (
-          <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>Popular</Text>
+      <ImageBackground
+        source={networkImages[item.network.toLowerCase() as keyof typeof networkImages]}
+        style={styles.cardBackground}
+        imageStyle={styles.cardBackgroundImage}
+      >
+        <View style={[styles.cardOverlay, { backgroundColor: `${networkColors[item.network.toLowerCase() as keyof typeof networkColors]}15` }]} />
+        
+        <View style={styles.planHeader}>
+          <View style={[styles.networkBadge, { backgroundColor: networkColors[item.network.toLowerCase() as keyof typeof networkColors] }]}>
+            <Text style={styles.networkText}>{item.network}</Text>
           </View>
-        )}
-      </View>
-      
-      <View style={styles.planContent}>
-        <Text style={styles.planNetwork}>{item.network}</Text>
-        {item.type === 'data' ? (
-          <>
-            <Text style={styles.planName}>{item.name}</Text>
-            <Text style={styles.planDuration}>{item.duration}</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.planName}>₦{item.amount}</Text>
-            <Text style={styles.planDuration}>Airtime</Text>
-          </>
-        )}
-      </View>
+          {item.popular && (
+            <View style={styles.popularBadge}>
+              <Text style={styles.popularText}>Popular</Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.planContent}>
+          {item.type === 'data' ? (
+            <>
+              <Text style={styles.planName}>{item.name}</Text>
+              <Text style={styles.planDuration}>{item.duration}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.planName}>₦{item.amount}</Text>
+              <Text style={styles.planDuration}>Airtime</Text>
+            </>
+          )}
+        </View>
 
-      <View style={styles.priceContainer}>
-        <Text style={styles.ourPrice}>₦{item.ourPrice}</Text>
-        <Text style={styles.competitorPrice}>₦{item.competitorPrice}</Text>
-      </View>
+        <View style={styles.priceContainer}>
+          <Text style={styles.ourPrice}>₦{item.ourPrice}</Text>
+          <Text style={styles.competitorPrice}>₦{item.competitorPrice}</Text>
+        </View>
+      </ImageBackground>
     </TouchableOpacity>
   );
 
@@ -207,6 +220,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ImageBackground
+        source={require('@/assets/images/bytedata.jpg')}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <View style={styles.backgroundOverlay} />
+        
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -268,7 +288,7 @@ export default function HomeScreen() {
             data={featuredPlans}
             renderItem={renderPlanCard}
             keyExtractor={(item) => item.id}
-            numColumns={2}
+            numColumns={3}
             scrollEnabled={false}
             contentContainerStyle={styles.planGrid}
           />
@@ -287,7 +307,7 @@ export default function HomeScreen() {
             data={airtimeOffers}
             renderItem={renderPlanCard}
             keyExtractor={(item) => item.id}
-            numColumns={2}
+            numColumns={3}
             scrollEnabled={false}
             contentContainerStyle={styles.planGrid}
           />
@@ -321,13 +341,6 @@ export default function HomeScreen() {
               <Text style={styles.actionTitle}>Buy Airtime</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionItem}>
-              <View style={[styles.actionIcon, { backgroundColor: theme.colors.accent }]}>
-                <Zap size={24} color={theme.colors.background} />
-              </View>
-              <Text style={styles.actionTitle}>Pay Bills</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity 
               style={styles.actionItem}
               onPress={() => router.push('/(tabs)/history')}>
@@ -340,6 +353,8 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
+      </ImageBackground>
+      
       <SignupModal
         visible={showSignupModal}
         onClose={() => setShowSignupModal(false)}
@@ -352,6 +367,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  backgroundImage: {
+    flex: 1,
+  },
+  backgroundImageStyle: {
+    opacity: 0.03,
+    resizeMode: 'cover',
+  },
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 20, 25, 0.95)',
   },
   content: {
     flex: 1,
@@ -462,24 +488,48 @@ const styles = StyleSheet.create({
   },
   planGrid: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 8,
   },
   planCard: {
-    backgroundColor: theme.colors.card,
     borderRadius: 16,
-    padding: 16,
     flex: 1,
-    margin: 6,
-    minHeight: 140,
+    margin: 4,
+    minHeight: 160,
+    overflow: 'hidden',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardBackground: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  cardBackgroundImage: {
+    opacity: 0.1,
+    borderRadius: 16,
+  },
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
   },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  networkIcon: {
-    fontSize: 24,
+  networkBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  networkText: {
+    color: theme.colors.background,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   popularBadge: {
     backgroundColor: theme.colors.primary,
@@ -495,36 +545,30 @@ const styles = StyleSheet.create({
   planContent: {
     flex: 1,
   },
-  planNetwork: {
-    color: theme.colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
   planName: {
     color: theme.colors.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   planDuration: {
     color: theme.colors.textSecondary,
-    fontSize: 12,
+    fontSize: 10,
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
+    gap: 4,
+    marginTop: 4,
   },
   ourPrice: {
     color: theme.colors.primary,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   competitorPrice: {
     color: theme.colors.error,
-    fontSize: 14,
+    fontSize: 12,
     textDecorationLine: 'line-through',
   },
   quickActions: {
@@ -533,7 +577,7 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     marginTop: 16,
   },
   actionItem: {

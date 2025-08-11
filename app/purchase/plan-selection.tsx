@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { theme } from '@/styles/theme';
+
+const networkImages = {
+  mtn: require('@/assets/images/mtn.png'),
+  airtel: require('@/assets/images/airtel.png'),
+  glo: require('@/assets/images/glo1.jpeg'),
+  '9mobile': require('@/assets/images/9mobile1.jpeg'),
+};
+
+const networkColors = {
+  mtn: '#FFCB05',
+  airtel: '#FF0000',
+  glo: '#00A651',
+  '9mobile': '#00AF50',
+};
 
 const planCategories = ['All', 'DAILY', 'WEEKLY', 'MONTHLY'];
 
@@ -67,6 +81,13 @@ export default function PlanSelectionScreen() {
     <TouchableOpacity
       style={styles.planItem}
       onPress={() => handlePlanSelect(item)}>
+      <ImageBackground
+        source={networkImages[network as keyof typeof networkImages]}
+        style={styles.planBackground}
+        imageStyle={styles.planBackgroundImage}
+      >
+        <View style={[styles.planOverlay, { backgroundColor: `${networkColors[network as keyof typeof networkColors]}15` }]} />
+        
       {service === 'data' ? (
         <>
           <Text style={styles.planName}>{item.name}</Text>
@@ -81,6 +102,7 @@ export default function PlanSelectionScreen() {
           </View>
         </>
       )}
+      </ImageBackground>
     </TouchableOpacity>
   );
 
@@ -130,7 +152,7 @@ export default function PlanSelectionScreen() {
           data={filteredPlans}
           keyExtractor={(item) => item.id}
           renderItem={renderPlan}
-          numColumns={3}
+          numColumns={4}
           contentContainerStyle={styles.plansList}
           showsVerticalScrollIndicator={false}
         />
@@ -195,36 +217,56 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   planItem: {
-    backgroundColor: theme.colors.card,
     flex: 1,
     margin: 4,
-    padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
     minHeight: 100,
+    overflow: 'hidden',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  planBackground: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  planBackgroundImage: {
+    opacity: 0.1,
+    borderRadius: 12,
+  },
+  planOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 12,
   },
   planName: {
     color: theme.colors.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
+    textAlign: 'center',
   },
   planDuration: {
     color: theme.colors.textSecondary,
-    fontSize: 12,
+    fontSize: 10,
     marginBottom: 8,
+    textAlign: 'center',
   },
   planPrice: {
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   planAmount: {
     color: theme.colors.text,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
+    textAlign: 'center',
   },
   discountBadge: {
     backgroundColor: theme.colors.success,
@@ -234,7 +276,8 @@ const styles = StyleSheet.create({
   },
   discountText: {
     color: theme.colors.background,
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
