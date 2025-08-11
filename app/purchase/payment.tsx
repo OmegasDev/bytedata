@@ -117,6 +117,24 @@ export default function PaymentScreen() {
         <View style={styles.paymentMethods}>
           <Text style={styles.methodsTitle}>Select Payment Method</Text>
 
+          {/* Quick Pay Option (Always Available) */}
+          <TouchableOpacity
+            style={[
+              styles.paymentMethod,
+              selectedPayment === 'card' && styles.paymentMethodSelected,
+            ]}
+            onPress={() => setSelectedPayment('card')}>
+            <View style={styles.methodLeft}>
+              <CreditCard size={24} color={theme.colors.secondary} />
+              <View style={styles.methodInfo}>
+                <Text style={styles.methodName}>Quick Pay</Text>
+                <Text style={styles.methodDescription}>Pay instantly with card via Paystack</Text>
+              </View>
+            </View>
+            {selectedPayment === 'card' && (
+              <View style={styles.selectedIndicator} />
+            )}
+          </TouchableOpacity>
           {user && (
             <TouchableOpacity
               style={[
@@ -144,23 +162,13 @@ export default function PaymentScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            style={[
-              styles.paymentMethod,
-              selectedPayment === 'card' && styles.paymentMethodSelected,
-            ]}
-            onPress={() => setSelectedPayment('card')}>
-            <View style={styles.methodLeft}>
-              <CreditCard size={24} color={theme.colors.secondary} />
-              <View style={styles.methodInfo}>
-                <Text style={styles.methodName}>Pay with Card</Text>
-                <Text style={styles.methodDescription}>Secure payment via Paystack</Text>
-              </View>
+          {!user && (
+            <View style={styles.guestNote}>
+              <Text style={styles.guestNoteText}>
+                💡 Create an account to use wallet balance and save on future purchases!
+              </Text>
             </View>
-            {selectedPayment === 'card' && (
-              <View style={styles.selectedIndicator} />
-            )}
-          </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -300,6 +308,17 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: theme.colors.primary,
+  },
+  guestNote: {
+    backgroundColor: theme.colors.primary + '20',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  guestNoteText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    textAlign: 'center',
   },
   footer: {
     padding: 16,
