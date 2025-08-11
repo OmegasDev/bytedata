@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Wallet, Clock, User, Plus } from 'lucide-react-native';
+import { Chrome as Home, Wallet, Clock, User, Plus } from 'lucide-react-native';
 import { useContext } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { AuthContext } from '@/contexts/AuthContext';
