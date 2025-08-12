@@ -86,6 +86,60 @@ const featuredPlans = [
     ourPrice: 3500,
     competitorPrice: 4000,
   },
+  {
+    id: '7',
+    type: 'data',
+    network: 'MTN',
+    name: '3GB',
+    duration: '7 Days',
+    ourPrice: 1500,
+    competitorPrice: 1800,
+  },
+  {
+    id: '8',
+    type: 'data',
+    network: 'Glo',
+    name: '5GB',
+    duration: '30 Days',
+    ourPrice: 2000,
+    competitorPrice: 2500,
+  },
+  {
+    id: '9',
+    type: 'data',
+    network: 'Airtel',
+    name: '10GB',
+    duration: '30 Days',
+    ourPrice: 3000,
+    competitorPrice: 3500,
+  },
+  {
+    id: '10',
+    type: 'data',
+    network: '9mobile',
+    name: '4GB',
+    duration: '30 Days',
+    ourPrice: 1800,
+    competitorPrice: 2200,
+  },
+  {
+    id: '11',
+    type: 'data',
+    network: 'MTN',
+    name: '15GB',
+    duration: '30 Days',
+    ourPrice: 4500,
+    competitorPrice: 5000,
+  },
+  {
+    id: '12',
+    type: 'data',
+    network: 'Glo',
+    name: '8GB',
+    duration: '30 Days',
+    ourPrice: 2800,
+    competitorPrice: 3200,
+  },
 ];
 
 const airtimeOffers = [
@@ -124,6 +178,24 @@ const airtimeOffers = [
     ourPrice: 196,
     competitorPrice: 200,
     discount: 4,
+  },
+  {
+    id: '11',
+    type: 'airtime',
+    network: 'MTN',
+    amount: 300,
+    ourPrice: 294,
+    competitorPrice: 300,
+    discount: 6,
+  },
+  {
+    id: '12',
+    type: 'airtime',
+    network: 'Airtel',
+    amount: 1500,
+    ourPrice: 1470,
+    competitorPrice: 1500,
+    discount: 30,
   },
 ];
 
@@ -278,7 +350,7 @@ export default function HomeScreen() {
             data={featuredPlans}
             renderItem={renderPlanCard}
             keyExtractor={(item) => item.id}
-            numColumns={3}
+            numColumns={4}
             scrollEnabled={false}
             contentContainerStyle={styles.planGrid}
           />
@@ -297,7 +369,7 @@ export default function HomeScreen() {
             data={airtimeOffers}
             renderItem={renderPlanCard}
             keyExtractor={(item) => item.id}
-            numColumns={3}
+            numColumns={4}
             scrollEnabled={false}
             contentContainerStyle={styles.planGrid}
           />

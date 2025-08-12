@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ImageBackground, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { vtpassService } from '@/services/vtpass';
 import { theme } from '@/styles/theme';
 
 const networkImages = {
-  mtn: require('@/assets/images/mtn1.png'),
+  mtn: require('@/assets/images/mtn.png'),
   airtel: require('@/assets/images/airtel.png'),
   glo: require('@/assets/images/glo1.jpeg'),
   '9mobile': require('@/assets/images/9mobile1.jpeg'),
@@ -21,43 +22,65 @@ const networkColors = {
 
 const planCategories = ['All', 'DAILY', 'WEEKLY', 'MONTHLY'];
 
-const samplePlans = {
-  data: [
-    { id: '1', name: '110MB', duration: '1 Day', price: 100.00, category: 'DAILY' },
-    { id: '2', name: '1GB', duration: '1 Day', price: 500.00, category: 'DAILY' },
-    { id: '3', name: '500MB', duration: '1 Day', price: 350.00, category: 'DAILY' },
-    { id: '4', name: '500MB', duration: '7 Days', price: 500.00, category: 'WEEKLY' },
-    { id: '5', name: '1.5GB', duration: '7 Days', price: 1000.00, category: 'WEEKLY' },
-    { id: '6', name: '1.5GB', duration: '2 Days', price: 600.00, category: 'WEEKLY' },
-    { id: '7', name: '1GB', duration: '7 Days', price: 800.00, category: 'WEEKLY' },
-    { id: '8', name: '6GB', duration: '7 Days', price: 2500.00, category: 'WEEKLY' },
-    { id: '9', name: '11GB', duration: '7 Days', price: 3500.00, category: 'WEEKLY' },
-    { id: '10', name: '2GB', duration: '30 Days', price: 1500.00, category: 'MONTHLY' },
-    { id: '11', name: '2.7GB', duration: '30 Days', price: 2000.00, category: 'MONTHLY' },
-    { id: '12', name: '1.8GB', duration: '7 Days', price: 1500.00, category: 'WEEKLY' },
-  ],
-  airtime: [
-    { id: '1', amount: 100.00, discount: 2.00 },
-    { id: '2', amount: 200.00, discount: 4.00 },
-    { id: '3', amount: 500.00, discount: 10.00 },
-    { id: '4', amount: 1000.00, discount: 20.00 },
-    { id: '5', amount: 5000.00, discount: 100.00 },
-    { id: '6', amount: 10000.00, discount: 200.00 },
-  ],
-};
-
 export default function PlanSelectionScreen() {
   const { service, network } = useLocalSearchParams<{ service: string; network: string }>();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (service === 'data') {
-      setPlans(samplePlans.data);
-    } else {
-      setPlans(samplePlans.airtime);
+    fetchPlans();
+  }, [service, network]);
+
+  const fetchPlans = async () => {
+    setLoading(true);
+    try {
+      if (service === 'data') {
+        const dataPlans = await vtpassService.getDataPlans(network || 'mtn');
+        const formattedPlans = dataPlans.map(plan => ({
+          id: plan.variation_code,
+          name: plan.name,
+          price: parseFloat(plan.fixedPrice || plan.variation_amount),
+          category: getCategoryFromName(plan.name),
+          variation_code: plan.variation_code,
+        }));
+        setPlans(formattedPlans);
+      } else {
+        const airtimePlans = await vtpassService.getAirtimePlans(network || 'mtn');
+        const formattedPlans = airtimePlans.map(plan => ({
+          id: plan.variation_code,
+          amount: parseFloat(plan.fixedPrice || plan.variation_amount),
+          variation_code: plan.variation_code,
+        }));
+        setPlans(formattedPlans);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load plans. Please try again.');
+      console.error('Error fetching plans:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [service]);
+  };
+
+  const getCategoryFromName = (name: string): string => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('daily') || lowerName.includes('1 day')) return 'DAILY';
+    if (lowerName.includes('weekly') || lowerName.includes('7 day')) return 'WEEKLY';
+    if (lowerName.includes('monthly') || lowerName.includes('30 day')) return 'MONTHLY';
+    
+    // Categorize by data size for fallback
+    const sizeMatch = name.match(/(\d+)(mb|gb)/i);
+    if (sizeMatch) {
+      const size = parseInt(sizeMatch[1]);
+      const unit = sizeMatch[2].toLowerCase();
+      
+      if (unit === 'mb' || (unit === 'gb' && size <= 2)) return 'DAILY';
+      if (unit === 'gb' && size <= 10) return 'WEEKLY';
+      return 'MONTHLY';
+    }
+    
+    return 'DAILY';
+  };
 
   const filteredPlans = plans.filter(plan => {
     if (selectedCategory === 'All') return true;
@@ -73,6 +96,7 @@ export default function PlanSelectionScreen() {
         planId: plan.id,
         planName: service === 'data' ? plan.name : `₦${plan.amount}`,
         planPrice: service === 'data' ? plan.price : plan.amount,
+        variationCode: plan.variation_code,
       },
     });
   };
@@ -92,71 +116,111 @@ export default function PlanSelectionScreen() {
       {service === 'data' ? (
         <>
           <Text style={styles.planName}>{item.name}</Text>
-          <Text style={styles.planDuration}>{item.duration}</Text>
+          <Text style={styles.planCategory}>{item.category}</Text>
           <Text style={styles.planPrice}>₦{item.price.toFixed(2)}</Text>
         </>
       ) : (
         <>
           <Text style={styles.planAmount}>₦{item.amount.toFixed(2)}</Text>
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>₦{item.discount.toFixed(2)} Discount</Text>
-          </View>
+          <Text style={styles.airtimeLabel}>Airtime</Text>
         </>
       )}
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ImageBackground
+          source={require('@/assets/images/bytedata.jpg')}
+          style={styles.backgroundImage}
+          imageStyle={styles.backgroundImageStyle}
+        >
+          <View style={styles.backgroundOverlay} />
+          
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <ArrowLeft size={24} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.title}>
+              {service === 'data' ? 'Data Plans' : 'Airtime'}
+            </Text>
+            <View style={styles.placeholder} />
+          </View>
+
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>Loading {service} plans...</Text>
+          </View>
+        </ImageBackground>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.title}>
-          {service === 'data' ? 'Data Details' : 'Airtime Details'}
-        </Text>
-        <View style={styles.placeholder} />
-      </View>
+      <ImageBackground
+        source={require('@/assets/images/bytedata.jpg')}
+        style={styles.backgroundImage}
+        imageStyle={styles.backgroundImageStyle}
+      >
+        <View style={styles.backgroundOverlay} />
+        
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            {service === 'data' ? 'Data Plans' : 'Airtime'} - {network?.toUpperCase()}
+          </Text>
+          <View style={styles.placeholder} />
+        </View>
 
-      <View style={styles.content}>
-        {service === 'data' && (
-          <>
-            <Text style={styles.subtitle}>Select Data Plan</Text>
-            <View style={styles.categoryTabs}>
-              {planCategories.map((category) => (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.categoryTab,
-                    selectedCategory === category && styles.categoryTabActive,
-                  ]}
-                  onPress={() => setSelectedCategory(category)}>
-                  <Text
+        <View style={styles.content}>
+          {service === 'data' && (
+            <>
+              <Text style={styles.subtitle}>Select Data Plan</Text>
+              <View style={styles.categoryTabs}>
+                {planCategories.map((category) => (
+                  <TouchableOpacity
+                    key={category}
                     style={[
-                      styles.categoryText,
-                      selectedCategory === category && styles.categoryTextActive,
-                    ]}>
-                    {category}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
+                      styles.categoryTab,
+                      selectedCategory === category && styles.categoryTabActive,
+                    ]}
+                    onPress={() => setSelectedCategory(category)}>
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        selectedCategory === category && styles.categoryTextActive,
+                      ]}>
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
 
-        {service === 'airtime' && (
-          <Text style={styles.subtitle}>Select Amount</Text>
-        )}
+          {service === 'airtime' && (
+            <Text style={styles.subtitle}>Select Amount</Text>
+          )}
 
-        <FlatList
-          data={filteredPlans}
-          keyExtractor={(item) => item.id}
-          renderItem={renderPlan}
-          numColumns={4}
-          contentContainerStyle={styles.plansList}
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+          <FlatList
+            data={filteredPlans}
+            keyExtractor={(item) => item.id}
+            renderItem={renderPlan}
+            numColumns={3}
+            contentContainerStyle={styles.plansList}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No plans available</Text>
+              </View>
+            }
+          />
+        </View>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -165,6 +229,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  backgroundImage: {
+    flex: 1,
+  },
+  backgroundImageStyle: {
+    opacity: 0.03,
+    resizeMode: 'cover',
+  },
+  backgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 20, 25, 0.95)',
   },
   header: {
     flexDirection: 'row',
@@ -203,7 +278,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   categoryTabActive: {
-    backgroundColor: theme.colors.text,
+    backgroundColor: theme.colors.primary,
   },
   categoryText: {
     color: theme.colors.textSecondary,
@@ -221,7 +296,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 4,
     borderRadius: 12,
-    minHeight: 100,
+    minHeight: 120,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -247,14 +322,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: 'center',
   },
-  planDuration: {
+  planCategory: {
     color: theme.colors.textSecondary,
     fontSize: 10,
     marginBottom: 8,
     textAlign: 'center',
   },
   planPrice: {
-    color: theme.colors.text,
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -266,16 +341,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  discountBadge: {
-    backgroundColor: theme.colors.success,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  discountText: {
-    color: theme.colors.background,
-    fontSize: 8,
-    fontWeight: 'bold',
+  airtimeLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    marginTop: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: theme.colors.textSecondary,
+    fontSize: 16,
   },
 });
