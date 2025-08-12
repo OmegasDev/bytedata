@@ -11,8 +11,8 @@ export default function RecipientScreen() {
   const [email, setEmail] = useState('');
 
   const handleContinue = () => {
-    if (!phoneNumber.trim() || !email.trim()) {
-      alert('Please fill in all fields');
+    if (!phoneNumber.trim()) {
+      alert('Please enter phone number');
       return;
     }
 
@@ -66,12 +66,12 @@ export default function RecipientScreen() {
 
         {/* Email Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Email Address</Text>
+          <Text style={styles.inputLabel}>Email Address (Optional)</Text>
           <View style={styles.inputContainer}>
             <Mail size={20} color={theme.colors.textSecondary} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Enter your email for receipt"
+              placeholder="Enter email for receipt (optional)"
               placeholderTextColor={theme.colors.textSecondary}
               value={email}
               onChangeText={setEmail}
@@ -86,10 +86,10 @@ export default function RecipientScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            (!phoneNumber.trim() || !email.trim()) && styles.continueButtonDisabled,
+            !phoneNumber.trim() && styles.continueButtonDisabled,
           ]}
           onPress={handleContinue}
-          disabled={!phoneNumber.trim() || !email.trim()}>
+          disabled={!phoneNumber.trim()}>
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>
