@@ -7,7 +7,7 @@ import { AuthContext } from '@/contexts/AuthContext';
 import { WalletContext } from '@/contexts/WalletContext';
 import { theme } from '@/styles/theme';
 
-const quickAmounts = [500, 1000, 2000, 5000, 10000];
+const quickAmounts = [100, 200, 500, 1000, 2000, 5000, 10000];
 
 export default function TopupScreen() {
   const { user } = useContext(AuthContext);
