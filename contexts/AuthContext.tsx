@@ -6,12 +6,14 @@ interface User {
   email: string;
   phone: string;
   name?: string;
+  walletAddress?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (user: User, token: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => Promise<void>;
   loading: boolean;
 }
 
@@ -19,6 +21,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
   logout: async () => {},
+  updateUser: async () => {},
   loading: true,
 });
 
@@ -52,11 +55,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (userData: User, token: string) => {
     try {
+      // Generate wallet address if not provided
+      if (!userData.walletAddress) {
+        userData.walletAddress = `BYT${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      }
+      
       await AsyncStorage.setItem('auth_token', token);
       await AsyncStorage.setItem('user_data', JSON.stringify(userData));
       setUser(userData);
     } catch (error) {
       console.error('Error during login:', error);
+      throw error;
+    }
+  };
+
+  const updateUser = async (userData: Partial<User>) => {
+    try {
+      if (user) {
+        const updatedUser = { ...user, ...userData };
+        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
       throw error;
     }
   };
@@ -72,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

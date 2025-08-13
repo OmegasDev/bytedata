@@ -1,15 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { router } from 'expo-router';
 import { theme } from '@/styles/theme';
 
 export default function SplashScreen() {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace('/(tabs)/');
-    }, 3000);
+  const [dots, setDots] = useState('');
 
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    // Animate dots
+    const dotInterval = setInterval(() => {
+      setDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+
+    // Navigate after 4 seconds
+    const timer = setTimeout(() => {
+      clearInterval(dotInterval);
+      router.replace('/(tabs)/');
+    }, 4000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(dotInterval);
+    };
   }, []);
 
   return (
@@ -25,9 +40,7 @@ export default function SplashScreen() {
       </View>
       
       <View style={styles.loadingContainer}>
-        <View style={styles.loadingBar}>
-          <View style={styles.loadingProgress} />
-        </View>
+        <Text style={styles.loadingDots}>{dots}</Text>
       </View>
     </View>
   );
@@ -43,48 +56,44 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 60,
+    marginBottom: 80,
   },
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    marginBottom: 24,
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.6,
+    shadowRadius: 25,
+    elevation: 15,
   },
   appName: {
     color: theme.colors.text,
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 12,
     textShadowColor: theme.colors.primary,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 15,
   },
   tagline: {
     color: theme.colors.textSecondary,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
   },
   loadingContainer: {
     position: 'absolute',
-    bottom: 100,
-    width: '60%',
+    bottom: 120,
+    alignItems: 'center',
   },
-  loadingBar: {
-    height: 4,
-    backgroundColor: theme.colors.card,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  loadingProgress: {
-    height: '100%',
-    width: '100%',
-    backgroundColor: theme.colors.primary,
-    borderRadius: 2,
+  loadingDots: {
+    color: theme.colors.primary,
+    fontSize: 32,
+    fontWeight: 'bold',
+    minHeight: 40,
+    minWidth: 60,
+    textAlign: 'center',
   },
 });

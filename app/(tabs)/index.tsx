@@ -301,16 +301,24 @@ export default function HomeScreen() {
           <View style={styles.userInfo}>
             {user ? (
               <View style={styles.userAvatar}>
-                <Text style={styles.avatarText}>{user.name?.[0]?.toUpperCase() || 'U'}</Text>
+                <Image 
+                  source={require('@/assets/images/bytedata.jpg')} 
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
               </View>
             ) : (
               <View style={styles.guestAvatar}>
-                <Text style={styles.avatarText}>G</Text>
+                <Image 
+                  source={require('@/assets/images/bytedata.jpg')} 
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
               </View>
             )}
             <View style={styles.greeting}>
               <Text style={styles.greetingText}>
-                {user ? `Hi, ${user.name?.split(' ')[0] || 'User'}` : 'Welcome to Bytedata'}
+                {user ? `Hi, ${user.name?.split(' ')[0] || 'User'}!` : 'Hi, Welcome!'}
               </Text>
             </View>
           </View>
@@ -458,7 +466,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primary,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -467,15 +475,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.secondary,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  avatarText: {
-    color: theme.colors.background,
-    fontSize: 16,
-    fontWeight: 'bold',
+  avatarImage: {
+    width: 40,
+    height: 40,
   },
   greeting: {
     flex: 1,
@@ -557,7 +564,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     flex: 1,
     margin: 4,
-    minHeight: 160,
+    minHeight: 140,
+    maxWidth: '22%',
     padding: 12,
     justifyContent: 'space-between',
     shadowColor: theme.colors.primary,

@@ -210,15 +210,34 @@ export default function PlanSelectionScreen() {
             data={filteredPlans}
             keyExtractor={(item) => item.id}
             renderItem={renderPlan}
-            numColumns={3}
+            numColumns={4}
             contentContainerStyle={styles.plansList}
             showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No plans available</Text>
               </View>
             }
           />
+
+          {/* Custom Amount Section */}
+          <View style={styles.customAmountSection}>
+            <Text style={styles.customAmountTitle}>
+              {service === 'data' ? 'Custom Data Amount' : 'Custom Airtime Amount'}
+            </Text>
+            <Text style={styles.customAmountDescription}>
+              Enter any amount you want to purchase
+            </Text>
+            <TouchableOpacity 
+              style={styles.customAmountButton}
+              onPress={() => router.push({
+                pathname: '/purchase/custom-amount',
+                params: { service, network }
+              })}>
+              <Text style={styles.customAmountButtonText}>Enter Custom Amount</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ImageBackground>
     </SafeAreaView>
@@ -294,9 +313,10 @@ const styles = StyleSheet.create({
   planItem: {
     backgroundColor: theme.colors.card,
     flex: 1,
-    margin: 4,
+    margin: 2,
     borderRadius: 12,
-    minHeight: 120,
+    minHeight: 110,
+    maxWidth: '23%',
     padding: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -365,5 +385,35 @@ const styles = StyleSheet.create({
   emptyText: {
     color: theme.colors.textSecondary,
     fontSize: 16,
+  },
+  customAmountSection: {
+    backgroundColor: theme.colors.card,
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  customAmountTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  customAmountDescription: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  customAmountButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  customAmountButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

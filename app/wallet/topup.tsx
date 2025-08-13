@@ -59,6 +59,24 @@ export default function TopupScreen() {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const shareMessage = `Hi! Please help me fund my ByteData wallet:
+
+Account Name: ByteData Wallet
+Account Number: 1234567890
+Bank: Providus Bank
+
+Any amount you send will reflect in my wallet. Thanks! 🙏`;
+
+      await Share.share({
+        message: shareMessage,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
@@ -78,6 +96,26 @@ export default function TopupScreen() {
 
         <View style={styles.content}>
           <Text style={styles.subtitle}>Select or enter amount to add</Text>
+
+          {/* Wallet Details */}
+          <View style={styles.walletDetails}>
+            <Text style={styles.walletTitle}>Fund via Bank Transfer</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Account Name:</Text>
+              <Text style={styles.detailValue}>ByteData Wallet</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Account Number:</Text>
+              <Text style={styles.detailValue}>1234567890</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Bank:</Text>
+              <Text style={styles.detailValue}>Providus Bank</Text>
+            </View>
+            <Text style={styles.transferNote}>
+              Transfer any amount and it will reflect in your wallet within 5 minutes
+            </Text>
+          </View>
 
           {/* Quick Amount Buttons */}
           <View style={styles.quickAmounts}>
@@ -120,15 +158,9 @@ export default function TopupScreen() {
           </View>
 
           {/* Payment Method */}
-          <View style={styles.paymentMethod}>
-            <View style={styles.methodIcon}>
-              <CreditCard size={24} color={theme.colors.primary} />
-            </View>
-            <View style={styles.methodInfo}>
-              <Text style={styles.methodName}>Pay with Card</Text>
-              <Text style={styles.methodDescription}>Secure payment via Paystack</Text>
-            </View>
-          </View>
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <Text style={styles.shareButtonText}>Share Wallet Details</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
@@ -140,7 +172,7 @@ export default function TopupScreen() {
             onPress={handleTopup}
             disabled={!customAmount || loading}>
             <Text style={styles.topupButtonText}>
-              {loading ? 'Processing...' : `Fund Wallet`}
+              {loading ? 'Processing...' : `Pay with Card - ₦${customAmount || '0'}`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -291,6 +323,51 @@ const styles = StyleSheet.create({
   topupButtonText: {
     color: theme.colors.background,
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  walletDetails: {
+    backgroundColor: theme.colors.card,
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  walletTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+  },
+  detailValue: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  transferNote: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
+  shareButton: {
+    backgroundColor: theme.colors.secondary,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  shareButtonText: {
+    color: theme.colors.background,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
