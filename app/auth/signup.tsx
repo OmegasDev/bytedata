@@ -41,19 +41,13 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      // Mock signup - replace with actual Supabase auth
-      const newUser = {
-        id: Date.now().toString(),
-        email: email.trim(),
-        phone: phone.trim(),
+      await signup(email.trim(), password, {
         name: name.trim(),
-      };
-      const token = 'token_' + Date.now();
-      
-      await login(newUser, token);
+        phone: phone.trim(),
+      });
       router.replace('/(tabs)/');
     } catch (error) {
-      Alert.alert('Signup Failed', 'Please try again');
+      Alert.alert('Signup Failed', error.message || 'Please try again');
     } finally {
       setLoading(false);
     }

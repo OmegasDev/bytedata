@@ -1,17 +1,12 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface User {
-  id: string;
-  email: string;
-  phone: string;
-  name?: string;
-  walletAddress?: string;
-}
+import { supabase, authService, User } from '@/services/supabase';
+import { Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
-  login: (user: User, token: string) => Promise<void>;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, userData: { name: string; phone: string }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   loading: boolean;
@@ -19,7 +14,9 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   login: async () => {},
+  signup: async () => {},
   logout: async () => {},
   updateUser: async () => {},
   loading: true,
@@ -31,40 +28,66 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuthStatus();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        loadUserProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session) {
+          await loadUserProfile(session.user.id);
+        } else {
+          setUser(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const checkAuthStatus = async () => {
+  const loadUserProfile = async (userId: string) => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
-      const userData = await AsyncStorage.getItem('user_data');
-      
-      if (token && userData) {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      }
+      const profile = await authService.getCurrentUser();
+      setUser(profile);
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error('Error loading user profile:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (userData: User, token: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      // Generate wallet address if not provided
-      if (!userData.walletAddress) {
-        userData.walletAddress = `BYT${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-      }
-      
-      await AsyncStorage.setItem('auth_token', token);
-      await AsyncStorage.setItem('user_data', JSON.stringify(userData));
-      setUser(userData);
+      setLoading(true);
+      await authService.signIn(email, password);
+      // User will be set via onAuthStateChange
     } catch (error) {
-      console.error('Error during login:', error);
+      setLoading(false);
+      throw error;
+    }
+  };
+
+  const signup = async (email: string, password: string, userData: { name: string; phone: string }) => {
+    try {
+      setLoading(true);
+      await authService.signUp(email, password, userData);
+      // User will be set via onAuthStateChange
+    } catch (error) {
+      setLoading(false);
       throw error;
     }
   };
@@ -72,8 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUser = async (userData: Partial<User>) => {
     try {
       if (user) {
-        const updatedUser = { ...user, ...userData };
-        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+        const updatedUser = await authService.updateProfile(user.id, userData);
         setUser(updatedUser);
       }
     } catch (error) {
@@ -84,16 +106,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user_data');
-      setUser(null);
+      await authService.signOut();
+      // User will be cleared via onAuthStateChange
     } catch (error) {
       console.error('Error during logout:', error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      login, 
+      signup, 
+      logout, 
+      updateUser, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

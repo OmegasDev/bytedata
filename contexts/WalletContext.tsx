@@ -1,32 +1,27 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { AuthContext } from './AuthContext';
-
-interface Transaction {
-  id: string;
-  amount: number;
-  type: 'credit' | 'debit';
-  category: string;
-  description: string;
-  date: string;
-  status: 'completed' | 'pending' | 'failed';
-}
+import { walletService, Transaction } from '@/services/supabase';
 
 interface WalletContextType {
   balance: number;
   transactions: Transaction[];
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
-  updateBalance: (amount: number) => void;
-  debitWallet: (amount: number) => boolean;
-  creditWallet: (amount: number) => void;
+  loading: boolean;
+  refreshWallet: () => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) => Promise<void>;
+  updateBalance: (amount: number) => Promise<void>;
+  debitWallet: (amount: number) => Promise<boolean>;
+  creditWallet: (amount: number) => Promise<void>;
 }
 
 export const WalletContext = createContext<WalletContextType>({
   balance: 0,
   transactions: [],
-  addTransaction: () => {},
-  updateBalance: () => {},
-  debitWallet: () => false,
-  creditWallet: () => {},
+  loading: false,
+  refreshWallet: async () => {},
+  addTransaction: async () => {},
+  updateBalance: async () => {},
+  debitWallet: async () => false,
+  creditWallet: async () => {},
 });
 
 interface WalletProviderProps {
@@ -35,51 +30,89 @@ interface WalletProviderProps {
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const { user } = useContext(AuthContext);
-  const [balance, setBalance] = useState(14.26);
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      amount: 1000,
-      type: 'debit',
-      category: 'Transfer',
-      description: 'to JIDDA GONI YUSUF',
-      date: new Date().toISOString(),
-      status: 'completed',
-    },
-    {
-      id: '2',
-      amount: 1000,
-      type: 'credit',
-      category: 'Transfer',
-      description: 'from IFEANYICHUKWU CHARLES SUNDAY',
-      date: new Date().toISOString(),
-      status: 'completed',
-    },
-  ]);
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const addTransaction = (transactionData: Omit<Transaction, 'id' | 'date'>) => {
-    const newTransaction: Transaction = {
-      ...transactionData,
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
-  };
-
-  const updateBalance = (amount: number) => {
-    setBalance(amount);
-  };
-
-  const debitWallet = (amount: number): boolean => {
-    if (balance >= amount) {
-      setBalance((prev) => prev - amount);
-      return true;
+  useEffect(() => {
+    if (user) {
+      refreshWallet();
+    } else {
+      setBalance(0);
+      setTransactions([]);
     }
-    return false;
+  }, [user]);
+
+  const refreshWallet = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const [walletBalance, userTransactions] = await Promise.all([
+        walletService.getBalance(user.id),
+        walletService.getTransactions(user.id)
+      ]);
+      
+      setBalance(walletBalance);
+      setTransactions(userTransactions);
+    } catch (error) {
+      console.error('Error refreshing wallet:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const creditWallet = (amount: number) => {
-    setBalance((prev) => prev + amount);
+  const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) => {
+    if (!user) return;
+
+    try {
+      const newTransaction = await walletService.addTransaction({
+        ...transactionData,
+        user_id: user.id,
+      });
+      
+      setTransactions(prev => [newTransaction, ...prev]);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      throw error;
+    }
+  };
+
+  const updateBalance = async (newBalance: number) => {
+    if (!user) return;
+
+    try {
+      await walletService.updateBalance(user.id, newBalance);
+      setBalance(newBalance);
+    } catch (error) {
+      console.error('Error updating balance:', error);
+      throw error;
+    }
+  };
+
+  const debitWallet = async (amount: number): Promise<boolean> => {
+    if (!user || balance < amount) return false;
+
+    try {
+      const newBalance = balance - amount;
+      await updateBalance(newBalance);
+      return true;
+    } catch (error) {
+      console.error('Error debiting wallet:', error);
+      return false;
+    }
+  };
+
+  const creditWallet = async (amount: number) => {
+    if (!user) return;
+
+    try {
+      const newBalance = balance + amount;
+      await updateBalance(newBalance);
+    } catch (error) {
+      console.error('Error crediting wallet:', error);
+      throw error;
+    }
   };
 
   return (
@@ -87,6 +120,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       value={{
         balance,
         transactions,
+        loading,
+        refreshWallet,
         addTransaction,
         updateBalance,
         debitWallet,

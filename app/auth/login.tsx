@@ -20,19 +20,10 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // Mock login - replace with actual Supabase auth
-      const mockUser = {
-        id: '1',
-        email: email.trim(),
-        phone: '+2348123456789',
-        name: 'John Doe',
-      };
-      const mockToken = 'mock_token_' + Date.now();
-      
-      await login(mockUser, mockToken);
+      await login(email.trim(), password);
       router.replace('/(tabs)/');
     } catch (error) {
-      Alert.alert('Login Failed', 'Please check your credentials and try again');
+      Alert.alert('Login Failed', error.message || 'Please check your credentials and try again');
     } finally {
       setLoading(false);
     }
