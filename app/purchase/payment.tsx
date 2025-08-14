@@ -1,79 +1,121 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Wallet, CreditCard } from 'lucide-react-native';
+import { ArrowLeft, CreditCard } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { AuthContext } from '@/contexts/AuthContext';
-import { WalletContext } from '@/contexts/WalletContext';
+import { paymentService } from '@/services/payment';
+import { gladtidingsService } from '@/services/gladtidings';
 import { theme } from '@/styles/theme';
 
 export default function PaymentScreen() {
-  const { service, network, planName, planPrice, phoneNumber, email } = useLocalSearchParams();
-  const { user } = useContext(AuthContext);
-  const { balance, debitWallet, addTransaction } = useContext(WalletContext);
-  const [selectedPayment, setSelectedPayment] = useState<'wallet' | 'card' | null>(null);
+  const { service, network, planName, planPrice, phoneNumber, email, planId } = useLocalSearchParams();
+  const [loading, setLoading] = useState(false);
 
   const amount = parseFloat(planPrice as string);
-  const canUseWallet = user && balance >= amount;
 
-  const handleWalletPayment = () => {
-    if (!canUseWallet) {
-      Alert.alert('Insufficient Balance', 'Your wallet balance is too low for this purchase.');
-      return;
-    }
-
-    Alert.alert(
-      'Confirm Purchase',
-      `Purchase ${planName} for ${phoneNumber}?\nAmount: ₦${amount.toFixed(2)}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: processWalletPayment,
-        },
-      ]
-    );
-  };
-
-  const processWalletPayment = () => {
-    if (debitWallet(amount)) {
-      addTransaction({
-        amount,
-        type: 'debit',
-        category: service as string,
-        description: `${planName} - ${phoneNumber}`,
-        status: 'completed',
-      });
-
-      router.push({
-        pathname: '/purchase/success',
-        params: {
+  const handlePayment = async () => {
+    setLoading(true);
+    try {
+      // Generate payment reference
+      const reference = paymentService.generateReference();
+      
+      // Initialize Paystack payment
+      const paymentData = {
+        email: (email as string) || 'user@bytedata.com',
+        amount: amount,
+        reference: reference,
+        callback_url: 'https://bytedata.com/payment/callback',
+        metadata: {
           service,
           network,
           planName,
-          amount: amount.toString(),
+          planId,
           phoneNumber,
-          reference: `BYT${Date.now()}`,
         },
-      });
-    } else {
-      Alert.alert('Payment Failed', 'Unable to process wallet payment.');
+      };
+
+      const paymentResponse = await paymentService.initializePayment(paymentData);
+      
+      if (paymentResponse.status) {
+        // In a real app, you would open the authorization_url in a webview
+        // For now, we'll simulate the payment process
+        Alert.alert(
+          'Payment Initialized',
+          'In a real app, this would open Paystack payment page. Simulating payment...',
+          [
+            {
+              text: 'Simulate Success',
+              onPress: () => simulatePaymentSuccess(reference),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => setLoading(false),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Payment Error', 'Unable to initialize payment. Please try again.');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      Alert.alert('Error', 'Unable to process payment. Please try again.');
+      setLoading(false);
     }
   };
 
-  const handleCardPayment = () => {
-    // This would normally integrate with Paystack
-    router.push({
-      pathname: '/purchase/paystack-webview',
-      params: {
-        service,
-        network,
-        planName,
-        planPrice,
-        phoneNumber,
-        email,
-      },
-    });
+  const simulatePaymentSuccess = async (reference: string) => {
+    try {
+      // Simulate payment verification
+      const verificationResponse = await paymentService.verifyPayment(reference);
+      
+      if (verificationResponse.status && verificationResponse.data.status === 'success') {
+        // Process purchase via GladtidingsData
+        let purchaseResponse;
+        
+        if (service === 'data') {
+          purchaseResponse = await gladtidingsService.buyData({
+            network: network as string,
+            plan_id: planId as string,
+            phone: phoneNumber as string,
+            amount: amount,
+            reference: reference,
+          });
+        } else {
+          purchaseResponse = await gladtidingsService.buyAirtime({
+            network: network as string,
+            phone: phoneNumber as string,
+            amount: amount,
+            reference: reference,
+          });
+        }
+        
+        if (purchaseResponse.status) {
+          // Navigate to success screen
+          router.push({
+            pathname: '/purchase/success',
+            params: {
+              service,
+              network,
+              planName,
+              amount: amount.toString(),
+              phoneNumber,
+              reference,
+            },
+          });
+        } else {
+          Alert.alert('Purchase Failed', purchaseResponse.message || 'Unable to complete the purchase. Please contact support.');
+        }
+      } else {
+        Alert.alert('Payment Failed', 'Payment was not successful. Please try again.');
+      }
+    } catch (error) {
+      console.error('Purchase error:', error);
+      Alert.alert('Error', 'An error occurred while processing your purchase. Please contact support.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,7 +124,7 @@ export default function PaymentScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Payment Method</Text>
+        <Text style={styles.title}>Payment</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -113,75 +155,34 @@ export default function PaymentScreen() {
           </View>
         </View>
 
-        {/* Payment Methods */}
-        <View style={styles.paymentMethods}>
-          <Text style={styles.methodsTitle}>Select Payment Method</Text>
+        {/* Payment Method */}
+        <View style={styles.paymentMethod}>
+          <View style={styles.methodIcon}>
+            <CreditCard size={32} color={theme.colors.primary} />
+          </View>
+          <View style={styles.methodInfo}>
+            <Text style={styles.methodName}>Pay with Card</Text>
+            <Text style={styles.methodDescription}>
+              Secure payment via Paystack
+            </Text>
+          </View>
+        </View>
 
-          {/* Quick Pay Option (Always Available) */}
-          <TouchableOpacity
-            style={[
-              styles.paymentMethod,
-              selectedPayment === 'card' && styles.paymentMethodSelected,
-            ]}
-            onPress={() => setSelectedPayment('card')}>
-            <View style={styles.methodLeft}>
-              <CreditCard size={24} color={theme.colors.secondary} />
-              <View style={styles.methodInfo}>
-                <Text style={styles.methodName}>Quick Pay</Text>
-                <Text style={styles.methodDescription}>Pay instantly with card via Paystack</Text>
-              </View>
-            </View>
-            {selectedPayment === 'card' && (
-              <View style={styles.selectedIndicator} />
-            )}
-          </TouchableOpacity>
-          {user && (
-            <TouchableOpacity
-              style={[
-                styles.paymentMethod,
-                selectedPayment === 'wallet' && styles.paymentMethodSelected,
-                !canUseWallet && styles.paymentMethodDisabled,
-              ]}
-              onPress={() => setSelectedPayment('wallet')}
-              disabled={!canUseWallet}>
-              <View style={styles.methodLeft}>
-                <Wallet size={24} color={canUseWallet ? theme.colors.primary : theme.colors.textSecondary} />
-                <View style={styles.methodInfo}>
-                  <Text style={[
-                    styles.methodName,
-                    !canUseWallet && { color: theme.colors.textSecondary }
-                  ]}>
-                    Wallet Balance
-                  </Text>
-                  <Text style={styles.methodBalance}>₦{balance.toFixed(2)}</Text>
-                </View>
-              </View>
-              {canUseWallet && selectedPayment === 'wallet' && (
-                <View style={styles.selectedIndicator} />
-              )}
-            </TouchableOpacity>
-          )}
-
-          {!user && (
-            <View style={styles.guestNote}>
-              <Text style={styles.guestNoteText}>
-                💡 Create an account to use wallet balance and save on future purchases!
-              </Text>
-            </View>
-          )}
+        {/* Security Notice */}
+        <View style={styles.securityNotice}>
+          <Text style={styles.securityText}>
+            🔒 Your payment is secured by Paystack's industry-standard encryption
+          </Text>
         </View>
       </View>
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.payButton,
-            !selectedPayment && styles.payButtonDisabled,
-          ]}
-          onPress={selectedPayment === 'wallet' ? handleWalletPayment : handleCardPayment}
-          disabled={!selectedPayment}>
+          style={[styles.payButton, loading && styles.payButtonDisabled]}
+          onPress={handlePayment}
+          disabled={loading}>
           <Text style={styles.payButtonText}>
-            Pay ₦{amount.toFixed(2)}
+            {loading ? 'Processing...' : `Pay ₦${amount.toFixed(2)}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -255,73 +256,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  paymentMethods: {
-    marginBottom: 24,
-  },
-  methodsTitle: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
   paymentMethod: {
     backgroundColor: theme.colors.card,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    marginBottom: 24,
   },
-  paymentMethodSelected: {
-    borderColor: theme.colors.primary,
-  },
-  paymentMethodDisabled: {
-    opacity: 0.5,
-  },
-  methodLeft: {
-    flexDirection: 'row',
+  methodIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
   },
   methodInfo: {
-    marginLeft: 12,
+    flex: 1,
   },
   methodName: {
     color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   methodDescription: {
     color: theme.colors.textSecondary,
-    fontSize: 12,
-  },
-  methodBalance: {
-    color: theme.colors.primary,
     fontSize: 14,
-    fontWeight: 'bold',
   },
-  selectedIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: theme.colors.primary,
-  },
-  guestNote: {
-    backgroundColor: theme.colors.primary + '20',
+  securityNotice: {
+    backgroundColor: theme.colors.success + '20',
     padding: 16,
     borderRadius: 12,
-    marginTop: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.success,
   },
-  guestNoteText: {
-    color: theme.colors.primary,
+  securityText: {
+    color: theme.colors.success,
     fontSize: 14,
     textAlign: 'center',
   },
   footer: {
-    padding: 16,
+    padding: 20,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },

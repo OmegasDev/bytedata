@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ImageBackground, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { vtpassService } from '@/services/vtpass';
+import { gladtidingsService } from '@/services/gladtidings';
 import { theme } from '@/styles/theme';
 
 const networkImages = {
@@ -13,18 +13,8 @@ const networkImages = {
   '9mobile': require('@/assets/images/9mobile1.jpeg'),
 };
 
-const networkColors = {
-  mtn: '#FFCB05',
-  airtel: '#FF0000',
-  glo: '#00A651',
-  '9mobile': '#00AF50',
-};
-
-const planCategories = ['All', 'DAILY', 'WEEKLY', 'MONTHLY'];
-
 export default function PlanSelectionScreen() {
   const { service, network } = useLocalSearchParams<{ service: string; network: string }>();
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,23 +26,14 @@ export default function PlanSelectionScreen() {
     setLoading(true);
     try {
       if (service === 'data') {
-        const dataPlans = await vtpassService.getDataPlans(network || 'mtn');
-        const formattedPlans = dataPlans.map(plan => ({
-          id: plan.variation_code,
-          name: plan.name,
-          price: parseFloat(plan.fixedPrice || plan.variation_amount),
-          category: getCategoryFromName(plan.name),
-          variation_code: plan.variation_code,
-        }));
-        setPlans(formattedPlans);
+        const dataPlans = await gladtidingsService.getDataPlans(network);
+        const filteredPlans = dataPlans.filter(plan => 
+          plan.network.toLowerCase() === network?.toLowerCase()
+        );
+        setPlans(filteredPlans);
       } else {
-        const airtimePlans = await vtpassService.getAirtimePlans(network || 'mtn');
-        const formattedPlans = airtimePlans.map(plan => ({
-          id: plan.variation_code,
-          amount: parseFloat(plan.fixedPrice || plan.variation_amount),
-          variation_code: plan.variation_code,
-        }));
-        setPlans(formattedPlans);
+        const airtimePlans = await gladtidingsService.getAirtimePlans();
+        setPlans(airtimePlans);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to load plans. Please try again.');
@@ -62,31 +43,6 @@ export default function PlanSelectionScreen() {
     }
   };
 
-  const getCategoryFromName = (name: string): string => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('daily') || lowerName.includes('1 day')) return 'DAILY';
-    if (lowerName.includes('weekly') || lowerName.includes('7 day')) return 'WEEKLY';
-    if (lowerName.includes('monthly') || lowerName.includes('30 day')) return 'MONTHLY';
-    
-    // Categorize by data size for fallback
-    const sizeMatch = name.match(/(\d+)(mb|gb)/i);
-    if (sizeMatch) {
-      const size = parseInt(sizeMatch[1]);
-      const unit = sizeMatch[2].toLowerCase();
-      
-      if (unit === 'mb' || (unit === 'gb' && size <= 2)) return 'DAILY';
-      if (unit === 'gb' && size <= 10) return 'WEEKLY';
-      return 'MONTHLY';
-    }
-    
-    return 'DAILY';
-  };
-
-  const filteredPlans = plans.filter(plan => {
-    if (selectedCategory === 'All') return true;
-    return plan.category === selectedCategory;
-  });
-
   const handlePlanSelect = (plan: any) => {
     router.push({
       pathname: '/purchase/recipient',
@@ -94,9 +50,8 @@ export default function PlanSelectionScreen() {
         service, 
         network, 
         planId: plan.id,
-        planName: service === 'data' ? plan.name : `₦${plan.amount}`,
+        planName: service === 'data' ? `${plan.size} - ${plan.validity}` : `₦${plan.amount}`,
         planPrice: service === 'data' ? plan.price : plan.amount,
-        variationCode: plan.variation_code,
       },
     });
   };
@@ -115,13 +70,13 @@ export default function PlanSelectionScreen() {
       
       {service === 'data' ? (
         <>
-          <Text style={styles.planName}>{item.name}</Text>
-          <Text style={styles.planCategory}>{item.category}</Text>
-          <Text style={styles.planPrice}>₦{item.price.toFixed(2)}</Text>
+          <Text style={styles.planSize}>{item.size}</Text>
+          <Text style={styles.planValidity}>{item.validity}</Text>
+          <Text style={styles.planPrice}>₦{item.price}</Text>
         </>
       ) : (
         <>
-          <Text style={styles.planAmount}>₦{item.amount.toFixed(2)}</Text>
+          <Text style={styles.planAmount}>₦{item.amount}</Text>
           <Text style={styles.airtimeLabel}>Airtime</Text>
         </>
       )}
@@ -131,115 +86,56 @@ export default function PlanSelectionScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={require('@/assets/images/bytedata.jpg')}
-          style={styles.backgroundImage}
-          imageStyle={styles.backgroundImageStyle}
-        >
-          <View style={styles.backgroundOverlay} />
-          
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <ArrowLeft size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.title}>
-              {service === 'data' ? 'Data Plans' : 'Airtime'}
-            </Text>
-            <View style={styles.placeholder} />
-          </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.title}>
+            {service === 'data' ? 'Data Plans' : 'Airtime'}
+          </Text>
+          <View style={styles.placeholder} />
+        </View>
 
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={styles.loadingText}>Loading {service} plans...</Text>
-          </View>
-        </ImageBackground>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Loading {service} plans...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ImageBackground
-        source={require('@/assets/images/bytedata.jpg')}
-        style={styles.backgroundImage}
-        imageStyle={styles.backgroundImageStyle}
-      >
-        <View style={styles.backgroundOverlay} />
-        
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <ArrowLeft size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.title}>
-            {service === 'data' ? 'Data Plans' : 'Airtime'} - {network?.toUpperCase()}
-          </Text>
-          <View style={styles.placeholder} />
-        </View>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.title}>
+          {service === 'data' ? 'Data Plans' : 'Airtime'} - {network?.toUpperCase()}
+        </Text>
+        <View style={styles.placeholder} />
+      </View>
 
-        <View style={styles.content}>
-          {service === 'data' && (
-            <>
-              <Text style={styles.subtitle}>Select Data Plan</Text>
-              <View style={styles.categoryTabs}>
-                {planCategories.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.categoryTab,
-                      selectedCategory === category && styles.categoryTabActive,
-                    ]}
-                    onPress={() => setSelectedCategory(category)}>
-                    <Text
-                      style={[
-                        styles.categoryText,
-                        selectedCategory === category && styles.categoryTextActive,
-                      ]}>
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
+      <View style={styles.content}>
+        <Text style={styles.subtitle}>
+          {service === 'data' ? 'Select Data Plan' : 'Select Amount'}
+        </Text>
 
-          {service === 'airtime' && (
-            <Text style={styles.subtitle}>Select Amount</Text>
-          )}
-
-          <FlatList
-            data={filteredPlans}
-            keyExtractor={(item) => item.id}
-            renderItem={renderPlan}
-            numColumns={4}
-            contentContainerStyle={styles.plansList}
-            showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No plans available</Text>
-              </View>
-            }
-          />
-
-          {/* Custom Amount Section */}
-          <View style={styles.customAmountSection}>
-            <Text style={styles.customAmountTitle}>
-              {service === 'data' ? 'Custom Data Amount' : 'Custom Airtime Amount'}
-            </Text>
-            <Text style={styles.customAmountDescription}>
-              Enter any amount you want to purchase
-            </Text>
-            <TouchableOpacity 
-              style={styles.customAmountButton}
-              onPress={() => router.push({
-                pathname: '/purchase/custom-amount',
-                params: { service, network }
-              })}>
-              <Text style={styles.customAmountButtonText}>Enter Custom Amount</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ImageBackground>
+        <FlatList
+          data={plans}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPlan}
+          numColumns={3}
+          contentContainerStyle={styles.plansList}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No plans available</Text>
+            </View>
+          }
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -248,17 +144,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  backgroundImage: {
-    flex: 1,
-  },
-  backgroundImageStyle: {
-    opacity: 0.03,
-    resizeMode: 'cover',
-  },
-  backgroundOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 20, 25, 0.95)',
   },
   header: {
     flexDirection: 'row',
@@ -285,46 +170,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
   },
-  categoryTabs: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  categoryTab: {
-    backgroundColor: theme.colors.card,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  categoryTabActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  categoryText: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  categoryTextActive: {
-    color: theme.colors.background,
-  },
   plansList: {
     gap: 12,
   },
   planItem: {
     backgroundColor: theme.colors.card,
     flex: 1,
-    margin: 2,
+    margin: 4,
     borderRadius: 12,
-    minHeight: 110,
-    maxWidth: '23%',
+    minHeight: 120,
+    maxWidth: '31%',
     padding: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   planHeader: {
     width: '100%',
@@ -335,16 +193,16 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
   },
-  planName: {
+  planSize: {
     color: theme.colors.text,
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
     textAlign: 'center',
   },
-  planCategory: {
+  planValidity: {
     color: theme.colors.textSecondary,
-    fontSize: 10,
+    fontSize: 12,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -385,35 +243,5 @@ const styles = StyleSheet.create({
   emptyText: {
     color: theme.colors.textSecondary,
     fontSize: 16,
-  },
-  customAmountSection: {
-    backgroundColor: theme.colors.card,
-    padding: 20,
-    borderRadius: 16,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  customAmountTitle: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  customAmountDescription: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  customAmountButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  customAmountButtonText: {
-    color: theme.colors.background,
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
